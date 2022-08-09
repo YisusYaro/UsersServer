@@ -3,12 +3,14 @@ package com.example.demo.users.port;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 import com.example.demo.users.application.commands.PersistUserCommand;
 import com.example.demo.users.application.commands.PersistUserHandler;
 
+@ConditionalOnExpression("#{!(systemProperties['consumer.enable']?:'false').equals('true')}")
 @Component
 class UsersSagas {
   @Autowired

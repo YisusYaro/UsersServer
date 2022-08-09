@@ -1,6 +1,7 @@
 package com.example.demo.users.port;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,6 +22,7 @@ import com.example.demo.users.application.queries.ListUsersHandler;
 
 import java.util.Map;
 
+@ConditionalOnExpression("#{!(systemProperties['producer.enable']?:'false').equals('true')}")
 @RestController
 class UsersController {
 
@@ -54,6 +56,7 @@ class UsersController {
 
   @GetMapping("/users")
   public ResponseEntity<Object> listUsers() throws Exception {
+    System.out.println(System.getenv("producer.enable"));
     return responser.handleQuery(() -> {
       ListUsersQuery query = new ListUsersQuery();
       return this.listUsersHandler.handle(query).get();
