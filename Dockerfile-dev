@@ -1,0 +1,7 @@
+FROM maven:3-amazoncorretto-8
+
+WORKDIR /app
+
+COPY . /app
+
+CMD ["./mvnw", "spring-boot:run"]

@@ -1,0 +1,92 @@
+version: '3.8'
+
+networks:
+  my-network:
+
+
+services:
+
+  server-service:
+    image: docker.jesusyaro.com/server
+    build:
+      context: ./
+      dockerfile: ./Dockerfile-dev
+    container_name: server-container
+    volumes:
+      - ./:/app
+    ports:
+      - '8080:8080'
+    stdin_open: true
+    depends_on:
+      mongo-service:
+        condition: service_healthy
+    networks:
+      - my-network
+    environment:
+      - DATABASE=my_db
+      - DATABASE_PROTOCOL=mongodb://
+      - DATABASE_IP=mongo-service
+      - DATABASE_USER=my_user
+      - DATABASE_PASSWORD=my_pwd
+      - SPRING_DATA_MONGODB_URI=mongodb://admin:password@mongo-container:27017/?maxPoolSize=20&w=majority
+      - server.error.whitelabel.enabled=false
+      - spring.kafka.producer.bootstrap-servers=kafka-service:9092
+      - spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.StringSerializer
+      - spring.kafka.producer.value-serializer=org.apache.kafka.common.serialization.StringSerializer
+      - spring.kafka.producer.group-id=group_id
+      - spring.kafka.consumer.bootstrap-servers=kafka-service:9092
+      - spring.kafka.consumer.group-id=group_id
+      - spring.kafka.consumer.auto-offset-reset=earliest
+      - spring.kafka.consumer.key-deserializer=org.apache.kafka.common.serialization.StringDeserializer
+      - spring.kafka.consumer.value-deserializer=org.apache.kafka.common.serialization.StringDeserializer
+
+  mongo-service:
+    image: mongo
+    container_name: mongo-container
+    volumes:
+      - ./database:/data/db
+    ports:
+      - 27017:27017
+    networks:
+      - my-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo localhost:27017/test --quiet
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: my_db
+
+  zookeeper-service:
+    image: bitnami/zookeeper:3.8
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/bitnami
+    networks:
+      - my-network
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+
+  kafka-service:
+    image: bitnami/kafka:3.2
+    ports:
+      - 9092:9092
+    volumes:
+      - kafka_data:/bitnami
+    networks:
+      - my-network
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper-service:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    depends_on:
+      - zookeeper-service
+
+volumes:
+  zookeeper_data:
+    driver: local
+  kafka_data:
+    driver: local
